@@ -28,7 +28,9 @@ INSTALLED_APPS = [
     'django_extensions',
     'api',
     'rest_framework',
+    'rest_framework_simplejwt',
     'silk',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -42,6 +44,41 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'DRF API Documentation',
+    'DESCRIPTION': 'API cho hệ thống quản lý sản phẩm và đơn hàng',
+    'VERSION': '1.0.0',
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    'SERVE_AUTHENTICATION': None,
+    'SCHEMAS': None,
+    'SCHEMA_MOUNT_PATH': '/api/schema/',
+    'SERVERS': [
+        {'url': 'http://localhost:8000', 'description': 'Development'},
+    ],
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+        }
+    },
+}
+
+from datetime import timedelta
+# Cấu hình thời gian sống của Token
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60), # Token sống 60 phút
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),    # Refresh token sống 1 ngày
+}
 ROOT_URLCONF = 'drf_course.urls'
 
 TEMPLATES = [
@@ -115,3 +152,21 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'api.User'
+
+# Cấu hình chi tiết cho Swagger
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API",
+    "DESCRIPTION": "API tài liệu",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Cấu hình để nút "Authorize" hoạt động với JWT
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SCHEMA_PATH_PREFIX": r"^/api/v\d+/",
+    "SCHEMA_PATH_PREFIX_TRIM": True,
+    "SERVERS": [
+        {
+            "url": "/api/v1/",
+            "description": "API v1",
+        },
+    ],
+}
