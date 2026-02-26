@@ -8,9 +8,13 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import (IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny)
 from rest_framework.views import APIView
-from api.filters import InStockFilterBackend, ProductFilter
+from api.filters import InStockFilterBackend, OrderFilter, ProductFilter
 from rest_framework import filters
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import viewsets
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 class ProductListAPIView(generics.ListAPIView):
     # queryset = Product.objects.all()
     # Cú pháp: model.objects.filter( field__lookup = value )
@@ -29,7 +33,7 @@ class ProductListAPIView(generics.ListAPIView):
 #     })
 
 class ProductListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Product.objects.all()
+    queryset = Product.objects.order_by('pk')
     serializer_class = ProductSerializer
 
     filter_backends = [DjangoFilterBackend, 
@@ -37,8 +41,19 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
                        filters.OrderingFilter,
                        InStockFilterBackend]
     filterset_class = ProductFilter #dùng filterset riêng, có thể định nghĩa logic lọc phức tạp hơn
-    search_fields = ['name', 'description']
+    search_fields = ['=name', 'description']
     ordering_fields = ['price', 'name']
+    pagination_class = None
+    
+
+    @method_decorator(cache_page(60*15, key_prefix='product_list')) #cache kết quả của view này trong 15 phút
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        import time
+        time.sleep(2) #giả lập truy vấn chậm, để thấy rõ hiệu quả của cache. Lần đầu truy cập sẽ mất 2s, các lần sau sẽ nhanh hơn do lấy từ cache
+        return super().get_queryset()
 
     def get_permissions(self):
         self.permission_classes = [AllowAny]
@@ -59,20 +74,26 @@ class ProductDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
             self.permission_classes = [IsAdminUser]
         return super().get_permissions()
 
-class OrderListAPIView(generics.ListAPIView):
-    queryset = Order.objects.prefetch_related('items__product') #tránh N+1 query, lấy luôn sp liên quan đến order
-    serializer_class = OrderSerializer
+class OrderViewSet(viewsets.ModelViewSet):
+        queryset = Order.objects.prefetch_related('items__product') #tránh N+1 query, lấy luôn sp liên quan đến order
+        serializer_class = OrderSerializer
+        permission_classes = [AllowAny]
+        filter_backends = [DjangoFilterBackend]
+        filterset_class = OrderFilter
 
 
+# class OrderListAPIView(generics.ListAPIView):
+#     queryset = Order.objects.prefetch_related('items__product') #tránh N+1 query, lấy luôn sp liên quan đến order
+#     serializer_class = OrderSerializer
 
-class UserOrderListAPIView(generics.ListAPIView):
-    queryset = Order.objects.prefetch_related('items__product') #tránh N+1 query, lấy luôn sp liên quan đến order
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated] #chỉ cho phép user đã đăng nhập truy cập
+# class UserOrderListAPIView(generics.ListAPIView):
+#     queryset = Order.objects.prefetch_related('items__product') #tránh N+1 query, lấy luôn sp liên quan đến order
+#     serializer_class = OrderSerializer
+#     permission_classes = [IsAuthenticated] #chỉ cho phép user đã đăng nhập truy cập
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.filter(user=self.request.user)
+#     def get_queryset(self):
+#         qs = super().get_queryset()
+#         return qs.filter(user=self.request.user)
 
 class ProductInfoAPIView(APIView):
     def get(self, request):

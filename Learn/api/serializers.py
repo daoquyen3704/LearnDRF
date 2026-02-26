@@ -32,6 +32,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     
     
 class OrderSerializer(serializers.ModelSerializer):
+    order_id = serializers.UUIDField(read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     total_price = serializers.SerializerMethodField(method_name='get_total_price')
 
@@ -40,12 +41,12 @@ class OrderSerializer(serializers.ModelSerializer):
         return sum(item.item_subtotal for item in order_items)
     class Meta:
         model = Order
-        fields = ( 'created_at', 'user', 'status', 'items', 'total_price')
+        fields = ( 'order_id', 'created_at', 'user', 'status', 'items', 'total_price')
 
 #khi nào dùng Serializer, khi nào dùng ModelSerializer?
 #ModelSerializer: tự động tạo field dựa trên model, tiết kiệm thời gian, phù hợp với các trường hợp đơn giản, không cần logic phức tạp Django biết model.
 #Serializer: linh hoạt hơn, cho phép bạn định nghĩa field tùy chỉnh,
-#  validation phức tạp, hoặc khi bạn muốn serialize dữ liệu không liên quan đến model nào đó. 
+# validation phức tạp, hoặc khi bạn muốn serialize dữ liệu không liên quan đến model nào đó. 
 # Dùng khi bạn cần kiểm soát hoàn toàn cách dữ liệu được serialize/deserialized.
 class ProductInfoSerializer(serializers.Serializer):
     # get all products, count of products, max price
