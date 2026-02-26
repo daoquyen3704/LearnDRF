@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import (IsAuthenticated, IsAdminUser, IsAuthenticatedOrReadOnly, AllowAny)
 from rest_framework.views import APIView
-
+from api.filters import ProductFilter
 class ProductListAPIView(generics.ListAPIView):
     # queryset = Product.objects.all()
     # Cú pháp: model.objects.filter( field__lookup = value )
@@ -29,6 +29,10 @@ class ProductListAPIView(generics.ListAPIView):
 class ProductListCreateAPIView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    # filter_backends = [DjangoFilterBackend] => Thêm riêng lẻ mà k đặt ở settings.py
+    # filterset_fields = ['price', 'stock', 'name'] #định nghĩa các trường lọc
+    filterset_class = ProductFilter #dùng filterset riêng, có thể định nghĩa logic lọc phức tạp hơn
+    
 
     def get_permissions(self):
         self.permission_classes = [AllowAny]
