@@ -1,6 +1,11 @@
+from rest_framework.filters import BaseFilterBackend
 import django_filters
 from .models import Product
 
+
+class InStockFilterBackend(BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        return queryset.filter(stock__gt=0)
 class ProductFilter(django_filters.FilterSet):
     class Meta:
         model = Product
